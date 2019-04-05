@@ -478,7 +478,12 @@ static ZMJPreferences *_globalPreferences;
 
 // MARK: Lazy variables
 - (CGSize)textSize {
-    NSDictionary *attributes = @{NSFontAttributeName: self.preferences.drawing.font};
+    NSMutableParagraphStyle *paragraphStyle = [NSMutableParagraphStyle new];
+    paragraphStyle.alignment = self.preferences.drawing.textAlignment;
+    paragraphStyle.lineBreakMode = NSLineBreakByWordWrapping;
+    paragraphStyle.lineSpacing = self.preferences.drawing.lineSpacing;
+
+    NSDictionary *attributes = @{NSFontAttributeName: self.preferences.drawing.font, NSParagraphStyleAttributeName: paragraphStyle};
     
     CGSize textSize = [self.text boundingRectWithSize:CGSizeMake(self.preferences.positioning.maxWidth, CGFLOAT_MAX)
                                               options:NSStringDrawingUsesLineFragmentOrigin
