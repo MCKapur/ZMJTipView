@@ -69,6 +69,7 @@ __unused static ZMJArrowPosition ZMJArrowPositionAllValues[4] = {
         _borderColor = [UIColor clearColor];
         _shadowColor = [[UIColor blackColor] colorWithAlphaComponent:.4];
         _font        = [UIFont systemFontOfSize:15.f];
+        _lineSpacing = 0;
     }
     return self;
 }
@@ -99,6 +100,7 @@ __unused static ZMJArrowPosition ZMJArrowPositionAllValues[4] = {
 @property (nonatomic, strong) ZMJPreferences        *preferences;
 @property (nonatomic, assign) CGSize textSize;
 @property (nonatomic, assign) CGSize contentSize;
+@property (nonatomic, strong) UIView *dismissOverlay;
 @end
 
 @implementation ZMJTipView
@@ -262,6 +264,14 @@ __unused static ZMJArrowPosition ZMJArrowPositionAllValues[4] = {
     self.frame = frame;
 }
 
+- (void)handleOutsideTap:(UIGestureRecognizer *)gesture {
+    if (gesture.state == UIGestureRecognizerStateEnded) {
+        [self removeGestureRecognizer:gesture];
+        [self.dismissOverlay removeGestureRecognizer:gesture];
+        [self dismissWithCompletion:nil];
+    }
+}
+
 - (void)handleTap {
     ![self.delegate respondsToSelector:@selector(tipViewDidSelected:)] ?: [self.delegate tipViewDidSelected:self];
     if (self.preferences.shouldSelectDismiss) {
@@ -357,7 +367,8 @@ __unused static ZMJArrowPosition ZMJArrowPositionAllValues[4] = {
     NSMutableParagraphStyle *paragraphStyle = [NSMutableParagraphStyle new];
     paragraphStyle.alignment = self.preferences.drawing.textAlignment;
     paragraphStyle.lineBreakMode = NSLineBreakByWordWrapping;
-    
+    paragraphStyle.lineSpacing = self.preferences.drawing.lineSpacing;
+
     CGRect textRect = CGRectMake(bubbleFrame.origin.x + (bubbleFrame.size.width - self.textSize.width) / 2,
                                  bubbleFrame.origin.y + (bubbleFrame.size.height - self.textSize.height) / 2,
                                  self.textSize.width,
@@ -540,9 +551,20 @@ static ZMJPreferences *_globalPreferences;
 {
     NSAssert2(superview == nil || [view hashSuperview:superview], @"The supplied superview <\%@)> is not a direct nor an indirect superview of the supplied reference view <%@)>. The superview passed to this method should be a direct or an indirect superview of the reference view. To display the tooltip within the main window, ignore the superview parameter.", superview, view);
     
-    if (!superview) {
-        superview = [UIApplication sharedApplication].windows.firstObject;
+//    if (!superview) {
+//        superview = [UIApplication sharedApplication].windows.firstObject;
+//    }
+    
+    if (self.window) {
+        UITapGestureRecognizer *tapGesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleOutsideTap:)];
+        UIView *dismissOverLay = [[UIView alloc] initWithFrame:self.window.bounds];
+        dismissOverLay.userInteractionEnabled = YES;
+        [dismissOverLay addGestureRecognizer:tapGesture];
+        dismissOverLay.autoresizingMask = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
+        [self.window addSubview:dismissOverLay];
+        _dismissOverlay = dismissOverLay;
     }
+    [self.window bringSubviewToFront:self];
     
     CGAffineTransform initialTransform = self.preferences.animating.showInitialTransform;
     CGAffineTransform finalTransform = self.preferences.animating.showFinalTransform;
@@ -586,6 +608,10 @@ static ZMJPreferences *_globalPreferences;
     CGFloat damping = self.preferences.animating.springDamping;
     CGFloat velocity = self.preferences.animating.springVelocity;
     
+    if (_dismissOverlay) {
+        [_dismissOverlay removeFromSuperview];
+    }
+
     __weak typeof(self) weak_self = self;
     [UIView animateWithDuration:self.preferences.animating.dismissDuration
                           delay:0
