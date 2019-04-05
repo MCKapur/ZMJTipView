@@ -52,6 +52,7 @@ typedef NS_ENUM(NSInteger, ZMJArrowPosition) {
 @end
 
 @interface ZMJDrawing : NSObject
+@property (nonatomic, assign) CGFloat lineSpacing;
 @property (nonatomic, assign) CGFloat cornerRadius;
 @property (nonatomic, assign) CGFloat arrowHeight;
 @property (nonatomic, assign) CGFloat arrowWidth;
